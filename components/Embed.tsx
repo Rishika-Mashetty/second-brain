@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect ,useRef} from "react";
 
 export default function Embed({ url }: { url: string }) {
   if (!url) return null;
@@ -29,53 +29,51 @@ export default function Embed({ url }: { url: string }) {
   // ===============================
   // ✅ X / Twitter Embed (Fully working)
   // ===============================
-  if (lower.includes("twitter.com") || lower.includes("x.com")) {
+ if (lower.includes("twitter.com") || lower.includes("x.com")) {
     const tweetIdMatch = url.match(/status\/(\d+)/);
     const tweetId = tweetIdMatch ? tweetIdMatch[1] : null;
+    const tweetRef = useRef<HTMLDivElement>(null);
+    const hasRenderedRef = useRef(false);
 
     useEffect(() => {
-      if (!tweetId) return;
+      if (!tweetId || !tweetRef.current || hasRenderedRef.current) return;
+      hasRenderedRef.current = true;
 
-      const loadTwitter = () => {
-        if ((window as any).twttr?.widgets) {
-          const container = document.getElementById(`tweet-${tweetId}`);
-          if (container) {
-            container.innerHTML = ""; // clear previous renders
-            (window as any).twttr.widgets
-              .createTweet(tweetId, container, {
-                theme: "dark",
-                align: "center",
-              })
-              .catch(() => {});
-          }
-        }
+      const loadTwitterWidget = () => {
+        (window as any).twttr?.widgets
+          ?.createTweet(tweetId, tweetRef.current, {
+            theme: "dark",
+            align: "center",
+          })
+          .catch(() => {});
       };
 
-      if ((window as any).twttr) {
-        loadTwitter();
-      } else {
+      if (!(window as any)._twitterScriptLoaded) {
         const script = document.createElement("script");
         script.src = "https://platform.twitter.com/widgets.js";
         script.async = true;
-        script.onload = loadTwitter;
+        script.onload = () => {
+          (window as any)._twitterScriptLoaded = true;
+          loadTwitterWidget();
+        };
         document.body.appendChild(script);
+      } else {
+        loadTwitterWidget();
       }
     }, [tweetId]);
 
     return (
-      <div
-        id={`tweet-${tweetId}`}
-        className="flex justify-center my-2"
-        style={{ minHeight: "120px" }}
-      >
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 underline"
-        >
-          View on X
-        </a>
+      <div className="flex justify-center my-2" style={{ minHeight: "120px" }}>
+        <div ref={tweetRef}>
+          {/* <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline"
+          >
+            View on X
+          </a> */}
+        </div>
       </div>
     );
   }

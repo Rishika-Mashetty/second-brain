@@ -5,7 +5,17 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Embed from '@/components/Embed';
 import { cn } from '@/lib/utils';
-import { Film, Github, Instagram, Linkedin, Twitter, Youtube, LogOut } from 'lucide-react';
+import {
+  Film,
+  Github,
+  Instagram,
+  Linkedin,
+  Twitter,
+  Youtube,
+  LogOut,
+  Menu,
+  X as CloseIcon,
+} from 'lucide-react';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -13,6 +23,7 @@ export default function Dashboard() {
   const [url, setUrl] = useState('');
   const [comment, setComment] = useState('');
   const [filter, setFilter] = useState<'all' | 'youtube' | 'x' | 'instagram' | 'linkedin' | 'github'>('all');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (status === 'authenticated') fetchPosts();
@@ -75,68 +86,75 @@ export default function Dashboard() {
   if (!session) return <div className="p-8 text-white">Not signed in</div>;
 
   return (
-    <div className="min-h-screen flex bg-[#0a0a0f] text-white">
+    <div className="min-h-screen flex bg-[#0a0a0f] text-white relative overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-white/5 border-r border-white/10 flex flex-col p-4">
-        <h2 className="text-lg font-semibold mb-6">📚 My Visual Board</h2>
-        <nav className="space-y-2">
+      <aside
+        className={cn(
+          'z-30 bg-white/5 border-r border-white/10 flex flex-col p-4 transition-all duration-300',
+          sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
+        )}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold whitespace-nowrap">📚 My Visual Board</h2>
           <Button
-            variant={filter === 'all' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('all')}
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-white/10 hover:bg-white/20"
+            onClick={() => setSidebarOpen(false)}
           >
-            <Film className="w-4 h-4 mr-2" /> All
-          </Button>
-          <Button
-            variant={filter === 'youtube' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('youtube')}
-          >
-            <Youtube className="w-4 h-4 mr-2" /> YouTube
-          </Button>
-          <Button
-            variant={filter === 'x' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('x')}
-          >
-            <Twitter className="w-4 h-4 mr-2" /> X / Twitter
-          </Button>
-          <Button
-            variant={filter === 'instagram' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('instagram')}
-          >
-            <Instagram className="w-4 h-4 mr-2" /> Instagram
-          </Button>
-          <Button
-            variant={filter === 'linkedin' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('linkedin')}
-          >
-            <Linkedin className="w-4 h-4 mr-2" /> LinkedIn
-          </Button>
-          <Button
-            variant={filter === 'github' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setFilter('github')}
-          >
-            <Github className="w-4 h-4 mr-2" /> GitHub
-          </Button>
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-white/10">
-          <Button
-            variant="destructive"
-            className="w-full justify-center"
-            onClick={() => signOut()}
-          >
-            <LogOut className="w-4 h-4 mr-2" /> Sign Out
+            <CloseIcon className="w-5 h-5" />
           </Button>
         </div>
+
+        {sidebarOpen && (
+          <>
+            <nav className="space-y-2">
+              {[
+                { key: 'all', label: 'All', icon: Film },
+                { key: 'youtube', label: 'YouTube', icon: Youtube },
+                { key: 'x', label: 'X / Twitter', icon: Twitter },
+                { key: 'instagram', label: 'Instagram', icon: Instagram },
+                { key: 'linkedin', label: 'LinkedIn', icon: Linkedin },
+                { key: 'github', label: 'GitHub', icon: Github },
+              ].map(({ key, label, icon: Icon }) => (
+                <Button
+                  key={key}
+                  variant={filter === key ? 'default' : 'ghost'}
+                  className="w-full justify-start text-sm"
+                  onClick={() => setFilter(key as any)}
+                >
+                  <Icon className="w-4 h-4 mr-2" /> {label}
+                </Button>
+              ))}
+            </nav>
+
+            <div className="mt-auto pt-6 border-t border-white/10">
+              <Button
+                variant="destructive"
+                className="w-full justify-center"
+                onClick={() => signOut()}
+              >
+                <LogOut className="w-4 h-4 mr-2" /> Sign Out
+              </Button>
+            </div>
+          </>
+        )}
       </aside>
 
+      {/* Sidebar Open Button */}
+      {!sidebarOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 left-4 z-30 rounded-full bg-white/10 hover:bg-white/20"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      )}
+
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto transition-all duration-300">
         <h1 className="text-2xl font-bold mb-6">Welcome, {session.user?.email}</h1>
 
         {/* Add new post */}
@@ -156,24 +174,30 @@ export default function Dashboard() {
             placeholder="Comment (optional)"
             className="flex-1 p-3 rounded bg-white/10"
           />
-          <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+          <Button
+            type="submit"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+          >
             Add
           </Button>
         </form>
 
-        {/* Posts grid */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Masonry layout using columns (no wasted space) */}
+        <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4">
           {posts.filter(filterPosts).map((p) => (
             <div
               key={p._id}
-              className="p-4 border border-white/10 rounded-lg space-y-3 bg-white/5"
+              className="break-inside-avoid border border-white/10 rounded-lg bg-white/5 p-3 mb-4 hover:bg-white/10 transition-all"
             >
               <Embed url={p.url} />
-              {p.comment && <p className="text-sm text-gray-300">{p.comment}</p>}
-              <div className="flex gap-2">
+              {p.comment && (
+                <p className="text-sm text-gray-300 mt-2">{p.comment}</p>
+              )}
+              <div className="flex gap-2 justify-end mt-2">
                 <Button
                   variant="secondary"
                   size="sm"
+                  className="text-xs px-2 py-1"
                   onClick={() => editPost(p._id)}
                 >
                   Edit
@@ -181,6 +205,7 @@ export default function Dashboard() {
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="text-xs px-2 py-1"
                   onClick={() => delPost(p._id)}
                 >
                   Delete
