@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Embed from '@/components/Embed';
 import { cn } from '@/lib/utils';
@@ -15,10 +16,12 @@ import {
   LogOut,
   Menu,
   X as CloseIcon,
+  MessageCircle,
 } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [url, setUrl] = useState('');
   const [comment, setComment] = useState('');
@@ -95,7 +98,7 @@ export default function Dashboard() {
         )}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold whitespace-nowrap">📚 My Visual Board</h2>
+          <h2 className="text-lg font-semibold whitespace-nowrap">My Visual Board</h2>
           <Button
             variant="ghost"
             size="icon"
@@ -109,7 +112,7 @@ export default function Dashboard() {
         {sidebarOpen && (
           <>
             <nav className="space-y-2">
-              {[
+              {[ 
                 { key: 'all', label: 'All', icon: Film },
                 { key: 'youtube', label: 'YouTube', icon: Youtube },
                 { key: 'x', label: 'X / Twitter', icon: Twitter },
@@ -126,6 +129,15 @@ export default function Dashboard() {
                   <Icon className="w-4 h-4 mr-2" /> {label}
                 </Button>
               ))}
+
+              {/* Chat Button */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sm text-blue-400 mt-4"
+                onClick={() => router.push('/chat')}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" /> Chat with Posts
+              </Button>
             </nav>
 
             <div className="mt-auto pt-6 border-t border-white/10">
@@ -158,10 +170,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold mb-6">Welcome, {session.user?.email}</h1>
 
         {/* Add new post */}
-        <form
-          onSubmit={addPost}
-          className="flex flex-col md:flex-row gap-3 mb-8 items-center"
-        >
+        <form onSubmit={addPost} className="flex flex-col md:flex-row gap-3 mb-8 items-center">
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -182,7 +191,7 @@ export default function Dashboard() {
           </Button>
         </form>
 
-        {/* Masonry layout using columns (no wasted space) */}
+        {/* Masonry layout using columns */}
         <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4">
           {posts.filter(filterPosts).map((p) => (
             <div
