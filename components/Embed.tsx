@@ -1,11 +1,13 @@
 "use client";
-import Script from "next/script";
+import { useEffect } from "react";
 
 export default function Embed({ url }: { url: string }) {
   if (!url) return null;
   const lower = url.toLowerCase();
 
-  // ✅ YouTube
+  // ===============================
+  // ✅ YouTube Embed
+  // ===============================
   const ytMatch = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9\-_]+)/
   );
@@ -24,71 +26,93 @@ export default function Embed({ url }: { url: string }) {
     );
   }
 
-  // ✅ Twitter / X
-  // ✅ Twitter / X (works for both twitter.com and x.com)
+  // ===============================
+  // ✅ X / Twitter Embed (Fully working)
+  // ===============================
   if (lower.includes("twitter.com") || lower.includes("x.com")) {
     const tweetIdMatch = url.match(/status\/(\d+)/);
     const tweetId = tweetIdMatch ? tweetIdMatch[1] : null;
 
-    if (!tweetId)
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline text-blue-400"
-        >
-          View on X
-        </a>
-      );
+    useEffect(() => {
+      if (!tweetId) return;
+
+      const loadTwitter = () => {
+        if ((window as any).twttr?.widgets) {
+          const container = document.getElementById(`tweet-${tweetId}`);
+          if (container) {
+            container.innerHTML = ""; // clear previous renders
+            (window as any).twttr.widgets
+              .createTweet(tweetId, container, {
+                theme: "dark",
+                align: "center",
+              })
+              .catch(() => {});
+          }
+        }
+      };
+
+      if ((window as any).twttr) {
+        loadTwitter();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://platform.twitter.com/widgets.js";
+        script.async = true;
+        script.onload = loadTwitter;
+        document.body.appendChild(script);
+      }
+    }, [tweetId]);
 
     return (
       <div
         id={`tweet-${tweetId}`}
-        className="flex justify-center"
-        suppressHydrationWarning
+        className="flex justify-center my-2"
+        style={{ minHeight: "120px" }}
       >
-        <Script
-          src="https://platform.twitter.com/widgets.js"
-          strategy="afterInteractive"
-          onLoad={() => {
-            if ((window as any).twttr?.widgets && tweetId) {
-              const container = document.getElementById(`tweet-${tweetId}`);
-              if (container) {
-                // Clear any old renders before re-creating
-                container.innerHTML = "";
-                (window as any).twttr.widgets
-                  .createTweet(tweetId, container, {
-                    theme: "dark",
-                    align: "center",
-                  })
-                  .catch((e: any) => console.error("Tweet render failed:", e));
-              }
-            }
-          }}
-        />
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 underline"
+        >
+          View on X
+        </a>
       </div>
     );
   }
 
-  // ✅ Instagram
+  // ===============================
+  // ✅ Instagram Embed (Fixed dynamic reload)
+  // ===============================
   if (lower.includes("instagram.com")) {
+    useEffect(() => {
+      const loadInsta = () => {
+        (window as any).instgrm?.Embeds?.process();
+      };
+
+      if ((window as any).instgrm) {
+        loadInsta();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://www.instagram.com/embed.js";
+        script.async = true;
+        script.onload = loadInsta;
+        document.body.appendChild(script);
+      }
+    }, [url]);
+
     return (
-      <>
-        <Script
-          src="https://www.instagram.com/embed.js"
-          strategy="lazyOnload"
-          onLoad={() => (window as any).instgrm?.Embeds?.process()}
-        />
-        <blockquote
-          className="instagram-media"
-          data-instgrm-permalink={url}
-        ></blockquote>
-      </>
+      <blockquote
+        className="instagram-media"
+        data-instgrm-permalink={url}
+        data-instgrm-version="14"
+        style={{ margin: "auto", maxWidth: "540px" }}
+      />
     );
   }
 
-  // ✅ GitHub
+  // ===============================
+  // ✅ GitHub Embed
+  // ===============================
   if (lower.includes("github.com")) {
     return (
       <div className="rounded border border-gray-700 p-4">
@@ -109,84 +133,79 @@ export default function Embed({ url }: { url: string }) {
     );
   }
 
+  // ===============================
+  // ✅ LinkedIn Embed (Public posts only)
+  // ===============================
   if (lower.includes("linkedin.com")) {
-    try {
-      const activityMatch =
-        url.match(/activity[-:]([0-9]+)/i) ||
-        url.match(/urn:li:activity:([0-9]+)/i);
-      const activityId = activityMatch ? activityMatch[1] : null;
+    const activityMatch =
+      url.match(/activity[-:]([0-9]+)/i) ||
+      url.match(/urn:li:activity:([0-9]+)/i);
+    const activityId = activityMatch ? activityMatch[1] : null;
 
-      if (activityId) {
-        // Detect localhost to show preview card
-        if (
-          typeof window !== "undefined" &&
-          window.location.hostname === "localhost"
-        ) {
-          return (
-            <div className="rounded border border-gray-700 p-4 bg-white/5">
-              <p className="text-sm text-gray-400">
-                LinkedIn Preview (local mode)
-              </p>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 underline"
-              >
-                {url}
-              </a>
-              <p className="text-gray-300 text-sm mt-2">
-                LinkedIn blocks iframe embeds on localhost. Deploy to Vercel to
-                see the full post.
-              </p>
-            </div>
-          );
-        }
-
-        // ✅ Only use iframe in deployed environment
-        return (
-          <iframe
-            src={`https://www.linkedin.com/embed/feed/update/urn:li:activity:${activityId}`}
-            width="100%"
-            height="600"
-            frameBorder="0"
-            allowFullScreen
-            title="LinkedIn post"
-            className="rounded-lg"
-          />
-        );
-      }
-
-      // Fallback if no ID
+    // LinkedIn embeds don't work on localhost
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname === "localhost"
+    ) {
       return (
-        <div className="rounded border border-gray-700 p-4">
-          <p className="text-sm text-gray-400">LinkedIn post:</p>
+        <div className="rounded border border-gray-700 p-4 bg-white/5">
+          <p className="text-sm text-gray-400 mb-1">LinkedIn Preview</p>
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline text-blue-400"
+            className="text-blue-400 underline break-all"
           >
             {url}
           </a>
+          <p className="text-xs text-gray-500 mt-2">
+            LinkedIn blocks iframe embeds on localhost. Deploy to Vercel to view
+            full post.
+          </p>
         </div>
       );
-    } catch (err) {
-      console.error("LinkedIn embed failed:", err);
+    }
+
+    if (activityId) {
       return (
+        <iframe
+          src={`https://www.linkedin.com/embed/feed/update/urn:li:activity:${activityId}`}
+          width="100%"
+          height="600"
+          frameBorder="0"
+          allowFullScreen
+          title="LinkedIn post"
+          className="rounded-lg"
+        />
+      );
+    }
+
+    // fallback
+    return (
+      <div className="rounded border border-gray-700 p-4">
+        <p className="text-sm text-gray-400 mb-1">LinkedIn Link:</p>
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline text-blue-400"
+          className="text-blue-400 underline break-all"
         >
           {url}
         </a>
-      );
-    }
+      </div>
+    );
   }
+
+  // ===============================
+  // ✅ Fallback for other links
+  // ===============================
   return (
-    <a href={url} target="_blank" className="underline break-all">
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline break-all text-blue-400"
+    >
       {url}
     </a>
   );
