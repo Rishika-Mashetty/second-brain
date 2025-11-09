@@ -1,8 +1,12 @@
 "use client";
-import { useEffect ,useRef} from "react";
+import { useEffect, useRef } from "react";
 
-export default function Embed({ url }: { url: string }) {
-  if (!url) return null;
+export default function Embed({ url }: { url?: string }) {
+  if (!url || url.trim() === "") {
+    // 📝 If no URL, just return nothing — notes handle text separately
+    return null;
+  }
+
   const lower = url.toLowerCase();
 
   // ===============================
@@ -27,9 +31,9 @@ export default function Embed({ url }: { url: string }) {
   }
 
   // ===============================
-  // ✅ X / Twitter Embed (Fully working)
+  // ✅ X / Twitter Embed
   // ===============================
- if (lower.includes("twitter.com") || lower.includes("x.com")) {
+  if (lower.includes("twitter.com") || lower.includes("x.com")) {
     const tweetIdMatch = url.match(/status\/(\d+)/);
     const tweetId = tweetIdMatch ? tweetIdMatch[1] : null;
     const tweetRef = useRef<HTMLDivElement>(null);
@@ -64,29 +68,17 @@ export default function Embed({ url }: { url: string }) {
 
     return (
       <div className="flex justify-center my-2" style={{ minHeight: "120px" }}>
-        <div ref={tweetRef}>
-          {/* <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 underline"
-          >
-            View on X
-          </a> */}
-        </div>
+        <div ref={tweetRef} />
       </div>
     );
   }
 
   // ===============================
-  // ✅ Instagram Embed (Fixed dynamic reload)
+  // ✅ Instagram Embed
   // ===============================
   if (lower.includes("instagram.com")) {
     useEffect(() => {
-      const loadInsta = () => {
-        (window as any).instgrm?.Embeds?.process();
-      };
-
+      const loadInsta = () => (window as any).instgrm?.Embeds?.process();
       if ((window as any).instgrm) {
         loadInsta();
       } else {
@@ -132,7 +124,7 @@ export default function Embed({ url }: { url: string }) {
   }
 
   // ===============================
-  // ✅ LinkedIn Embed (Public posts only)
+  // ✅ LinkedIn Embed
   // ===============================
   if (lower.includes("linkedin.com")) {
     const activityMatch =
@@ -140,7 +132,6 @@ export default function Embed({ url }: { url: string }) {
       url.match(/urn:li:activity:([0-9]+)/i);
     const activityId = activityMatch ? activityMatch[1] : null;
 
-    // LinkedIn embeds don't work on localhost
     if (
       typeof window !== "undefined" &&
       window.location.hostname === "localhost"
@@ -157,8 +148,7 @@ export default function Embed({ url }: { url: string }) {
             {url}
           </a>
           <p className="text-xs text-gray-500 mt-2">
-            LinkedIn blocks iframe embeds on localhost. Deploy to Vercel to view
-            full post.
+            LinkedIn embeds don’t work locally. Deploy to view the full post.
           </p>
         </div>
       );
@@ -178,7 +168,6 @@ export default function Embed({ url }: { url: string }) {
       );
     }
 
-    // fallback
     return (
       <div className="rounded border border-gray-700 p-4">
         <p className="text-sm text-gray-400 mb-1">LinkedIn Link:</p>

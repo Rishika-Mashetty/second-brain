@@ -3,7 +3,7 @@ import { Schema, model, models, Types } from "mongoose";
 const PostSchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: "User", required: true },
-    url: { type: String, required: true },
+    url: { type: String, default: "" },
     comment: { type: String, default: "" },
 
     // 🧠 New Field — Stores the auto-generated summary
